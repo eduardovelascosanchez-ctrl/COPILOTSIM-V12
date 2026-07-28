@@ -1,0 +1,1244 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#060d14" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="SimCopilot" />
+<link rel="manifest" href="./manifest.json" />
+<link rel="apple-touch-icon" href="./icon-192.png" />
+<title>SimCopilot EDUVESA — NRP & PALS</title>
+<style>
+  :root{
+    --bg:#060d14; --bg2:#0a141e; --panel:#0e1b28; --panel2:#122233; --raise:#16293b;
+    --line:#1c3140; --line-soft:#152535;
+    --ink:#e9f2f8; --ink-dim:#93aabb; --ink-faint:#5f778a;
+    --hr:#2fe08a; --spo2:#37c9ff; --bp:#ff5a6a; --etco2:#ffd15c; --rr:#e9f2f8; --temp:#ff9f57;
+    --ok:#2fe08a; --warn:#ffb020; --crit:#ff445e;
+    --accent:#19c2ad; --accent-ink:#04211d; --accent2:#3ba7ff;
+    --r:14px; --r-lg:20px;
+    --font-ui:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-num:ui-monospace,"SF Mono","Cascadia Code","Segoe UI Mono",Menlo,Consolas,monospace;
+    --shadow:0 18px 50px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:radial-gradient(1200px 700px at 80% -10%,#0c1a27 0%,var(--bg) 60%);
+    color:var(--ink);font-family:var(--font-ui);-webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none}
+  button:focus-visible,[tabindex]:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .view{position:fixed;inset:0;display:none;flex-direction:column}
+  body[data-view="home"] #view-home{display:flex}
+  body[data-view="monitor"] #view-monitor{display:flex}
+  body[data-view="control"] #view-control{display:flex}
+  body[data-view="solo"] #view-solo{display:flex}
+
+  /* ---------------- HOME ---------------- */
+  #view-home{overflow:auto;align-items:center;justify-content:center;padding:26px}
+  .home-wrap{width:100%;max-width:940px}
+  .brandline{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+  .logo{width:46px;height:46px;border-radius:12px;background:var(--panel);border:1px solid var(--line);
+    display:grid;place-items:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}
+  .logo svg{width:30px;height:30px}
+  .brandline b{font-size:19px;letter-spacing:.2px}
+  .brandline span{color:var(--ink-faint);font-size:12.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+  .hero h1{font-size:clamp(30px,6vw,52px);line-height:1.02;margin:.1em 0 .35em;letter-spacing:-.02em;font-weight:800}
+  .hero h1 em{font-style:normal;color:var(--accent)}
+  .hero p{color:var(--ink-dim);font-size:16px;max-width:60ch;line-height:1.5;margin:0 0 26px}
+  .roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:16px}
+  .role{
+    text-align:left;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+    border-radius:var(--r-lg);padding:20px;display:flex;flex-direction:column;gap:8px;min-height:158px;
+    transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease}
+  .role:hover{transform:translateY(-3px);border-color:#295170;box-shadow:var(--shadow)}
+  .role .ico{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;margin-bottom:2px}
+  .role .ico svg{width:22px;height:22px}
+  .role h3{margin:0;font-size:17px}
+  .role small{color:var(--ink-dim);font-size:13px;line-height:1.4}
+  .role .go{margin-top:auto;color:var(--accent);font-weight:700;font-size:13.5px;display:flex;gap:6px;align-items:center}
+  .r-monitor .ico{background:rgba(55,201,255,.12);color:var(--spo2)}
+  .r-control .ico{background:rgba(25,194,173,.14);color:var(--accent)}
+  .r-solo .ico{background:rgba(47,224,138,.12);color:var(--hr)}
+  .home-foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:22px;
+    padding-top:18px;border-top:1px solid var(--line-soft)}
+  .install-row{display:flex;gap:10px;flex-wrap:wrap}
+  .btn{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:11px;
+    padding:11px 16px;font-weight:650;font-size:14px;display:inline-flex;gap:8px;align-items:center;transition:.14s}
+  .btn:hover{border-color:#2c526f}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+  .btn.primary:hover{filter:brightness(1.06)}
+  .btn.ghost{background:transparent}
+  .btn svg{width:17px;height:17px}
+  .home-note{color:var(--ink-faint);font-size:12.5px;max-width:44ch;line-height:1.5}
+  .home-note b{color:var(--ink-dim);font-weight:700}
+
+  /* ---------------- shared chrome ---------------- */
+  .topbar{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg2);
+    border-bottom:1px solid var(--line);min-height:52px}
+  .topbar .back{border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:13px;font-weight:650;background:var(--panel)}
+  .conn{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--ink-faint);
+    border:1px solid var(--line);border-radius:999px;padding:5px 11px;background:var(--panel)}
+  .conn .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-faint);box-shadow:0 0 0 0 rgba(0,0,0,0)}
+  .conn.live{color:var(--hr)} .conn.live .dot{background:var(--hr);animation:pulseDot 1.6s infinite}
+  @keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(47,224,138,.5)}70%{box-shadow:0 0 0 7px rgba(47,224,138,0)}100%{box-shadow:0 0 0 0 rgba(47,224,138,0)}}
+  .spacer{flex:1}
+  .timer{font-family:var(--font-num);font-size:19px;font-weight:700;letter-spacing:.02em;padding:2px 8px;border-radius:8px;background:var(--panel)}
+  .timer.run{color:var(--hr)}
+
+  /* ---------------- MONITOR ---------------- */
+  .mon{flex:1;display:flex;flex-direction:column;background:#04090f;position:relative;min-height:0}
+  .mon-status{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #0f2130;background:#060d15}
+  .mon-status .pt{font-size:13px;color:var(--ink-dim);font-weight:600;display:flex;gap:8px;flex-wrap:wrap}
+  .mon-status .pt b{color:var(--ink)}
+  .mon-status .rhythm{font-family:var(--font-num);font-weight:800;letter-spacing:.06em;color:var(--hr);
+    border:1px solid rgba(47,224,138,.35);padding:3px 9px;border-radius:7px;font-size:13px;text-transform:uppercase}
+  .mon-status .rhythm.nopulse{color:var(--crit);border-color:rgba(255,68,94,.4)}
+  .alarms{display:flex;gap:7px;flex-wrap:wrap}
+  .alarm{font-size:11px;font-weight:800;letter-spacing:.05em;padding:3px 9px;border-radius:6px;text-transform:uppercase;font-family:var(--font-num)}
+  .alarm.warn{background:rgba(255,176,32,.14);color:var(--warn);border:1px solid rgba(255,176,32,.35)}
+  .alarm.crit{background:rgba(255,68,94,.16);color:var(--crit);border:1px solid rgba(255,68,94,.45);animation:blink 1s steps(2,start) infinite}
+  @keyframes blink{50%{opacity:.35}}
+  .mon-grid{flex:1;display:grid;grid-template-columns:1fr minmax(210px,300px);min-height:0}
+  .waves{display:grid;grid-template-rows:1fr 1fr 1fr;min-height:0;border-right:1px solid #0f2130}
+  .wave{position:relative;border-bottom:1px solid #0c1c2a;min-height:0}
+  .wave:last-child{border-bottom:none}
+  .wave canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .wave .wlabel{position:absolute;left:10px;top:7px;font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:.05em;z-index:2}
+  .nums{display:grid;grid-template-rows:repeat(5,1fr);min-height:0}
+  .tile{display:flex;flex-direction:column;justify-content:center;padding:6px 14px;border-bottom:1px solid #0c1c2a;position:relative}
+  .tile:last-child{border-bottom:none}
+  .tile .thead{display:flex;justify-content:space-between;align-items:baseline}
+  .tile .tlabel{font-family:var(--font-num);font-size:12px;font-weight:800;letter-spacing:.06em}
+  .tile .trange{font-family:var(--font-num);font-size:10.5px;color:var(--ink-faint)}
+  .tile .tval{font-family:var(--font-num);font-weight:800;line-height:.92;letter-spacing:-.03em;
+    font-size:clamp(34px,7vw,62px);display:flex;align-items:baseline;gap:6px}
+  .tile .tunit{font-size:13px;font-weight:700;color:var(--ink-faint);letter-spacing:0}
+  .tile.crit .tval{animation:blink 1s steps(2,start) infinite}
+  .mon-ticker{display:flex;gap:8px;align-items:center;padding:7px 14px;border-top:1px solid #0f2130;background:#060d15;
+    font-size:12.5px;color:var(--ink-dim);min-height:34px;overflow:hidden}
+  .mon-ticker .ev{white-space:nowrap;font-family:var(--font-num)}
+  .mon-ticker .ev b{color:var(--ink)}
+  .no-signal{position:absolute;inset:0;display:none;place-items:center;background:rgba(4,9,15,.9);z-index:5;text-align:center;padding:24px}
+  .mon.nosignal .no-signal{display:grid}
+  .no-signal .box{max-width:420px}
+  .no-signal h3{margin:0 0 8px;font-size:20px}
+  .no-signal p{color:var(--ink-dim);margin:0;line-height:1.5;font-size:14px}
+  .disclaimer{font-size:11px;color:var(--ink-faint);text-align:center;padding:5px}
+
+  /* mini (embedded in control/solo) */
+  .mon.mini{border-radius:var(--r);border:1px solid var(--line);overflow:hidden}
+  .mon.mini .mon-status{padding:6px 10px}
+  .mon.mini .tile .tval{font-size:clamp(26px,5.4vw,40px)}
+  .mon.mini .mon-ticker{display:none}
+  .mon.mini .disclaimer{display:none}
+
+  /* ---------------- CONTROL ---------------- */
+  #view-control{background:var(--bg)}
+  .ctrl-scroll{flex:1;overflow:auto;padding:12px 12px 120px;min-height:0}
+  .ctrl-wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:13px}
+  .card > .chead{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+  .chead h2{margin:0;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}
+  .chead .hint{font-size:11.5px;color:var(--ink-faint)}
+
+  .setup-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .field label{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:5px}
+  .seg{display:flex;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+  .seg button{flex:1;padding:8px 6px;border-radius:7px;font-size:13px;font-weight:700;color:var(--ink-dim)}
+  .seg button.on{background:var(--raise);color:var(--ink)}
+  .seg.prog button.on{background:var(--accent);color:var(--accent-ink)}
+  select,input[type=text],input[type=number]{
+    width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--ink);border-radius:10px;
+    padding:10px 11px;font-size:14px;font-family:inherit;-webkit-appearance:none;appearance:none}
+  .scn-list{display:flex;flex-direction:column;gap:7px;max-height:230px;overflow:auto;margin-top:4px}
+  .scn{display:flex;gap:10px;align-items:flex-start;text-align:left;border:1px solid var(--line);background:var(--bg2);
+    border-radius:11px;padding:10px 11px;transition:.12s}
+  .scn:hover{border-color:#2c526f}
+  .scn.on{border-color:var(--accent);background:rgba(25,194,173,.08)}
+  .scn .stag{font-family:var(--font-num);font-size:10px;font-weight:800;letter-spacing:.05em;padding:3px 6px;border-radius:5px;
+    background:var(--raise);color:var(--ink-dim);white-space:nowrap;margin-top:1px}
+  .scn .stag.nrp{color:#8fd0ff} .scn .stag.pals{color:#7ff0c2}
+  .scn b{font-size:14px;display:block}
+  .scn small{color:var(--ink-dim);font-size:12px;line-height:1.35}
+
+  .presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+  .preset{border:1px solid var(--line);background:var(--bg2);border-radius:12px;padding:12px 8px;text-align:center;
+    display:flex;flex-direction:column;gap:5px;align-items:center;transition:.12s;font-weight:750;font-size:13px}
+  .preset:hover{transform:translateY(-2px)}
+  .preset svg{width:20px;height:20px}
+  .preset.good{color:var(--hr)} .preset.bad{color:var(--warn)} .preset.crit{color:var(--crit)} .preset.rosc{color:var(--spo2)}
+  .preset.neutral{color:var(--ink)}
+
+  .vitctrl{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}
+  .vc{border:1px solid var(--line);border-radius:12px;padding:9px 10px;background:var(--bg2)}
+  .vc .vhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .vc .vlab{font-family:var(--font-num);font-size:11px;font-weight:800;letter-spacing:.05em}
+  .vc .vval{font-family:var(--font-num);font-weight:800;font-size:22px;letter-spacing:-.02em}
+  .vc .vrow{display:flex;gap:7px;align-items:center}
+  .step{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);
+    font-size:22px;font-weight:700;display:grid;place-items:center;flex:0 0 auto;user-select:none}
+  .step:active{background:var(--raise)}
+  .vc input[type=range]{flex:1;accent-color:var(--accent);height:26px}
+
+  .rhythms{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
+  .rbtn{border:1px solid var(--line);background:var(--bg2);border-radius:11px;padding:11px 6px;font-weight:750;font-size:13px;
+    display:flex;flex-direction:column;gap:3px;align-items:center;transition:.12s}
+  .rbtn small{font-size:9.5px;color:var(--ink-faint);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+  .rbtn.on{border-color:var(--accent);background:rgba(25,194,173,.1)}
+  .rbtn.shock.on{border-color:var(--crit);background:rgba(255,68,94,.12);color:var(--crit)}
+
+  .actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+  .act{display:flex;gap:9px;align-items:center;border:1px solid var(--line);background:var(--bg2);border-radius:10px;
+    padding:9px 11px;text-align:left;font-size:13px;font-weight:650;transition:.12s}
+  .act .chk{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line-soft);flex:0 0 auto;display:grid;place-items:center}
+  .act.done{border-color:var(--hr);background:rgba(47,224,138,.09)}
+  .act.done .chk{background:var(--hr);border-color:var(--hr)}
+  .act.done .chk svg{width:13px;height:13px;color:#04211d}
+
+  .toolrow{display:flex;gap:8px;flex-wrap:wrap}
+  .toolrow .btn{flex:1;justify-content:center}
+  .btn.danger{border-color:rgba(255,68,94,.4);color:var(--crit);background:rgba(255,68,94,.06)}
+  .btn.warnb{border-color:rgba(255,176,32,.4);color:var(--warn);background:rgba(255,176,32,.06)}
+  .btn.warnb.armed{background:var(--warn);color:#241800}
+  .notes{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:150px;overflow:auto}
+  .note{font-size:12.5px;color:var(--ink-dim);border-left:2px solid var(--line);padding:3px 0 3px 9px}
+  .note b{color:var(--ink);font-family:var(--font-num);font-size:11px;margin-right:6px}
+
+  .ctrl-foot{position:absolute;left:0;right:0;bottom:0;padding:11px 12px calc(11px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,rgba(6,13,20,0),var(--bg) 30%);display:flex;gap:9px}
+  .ctrl-foot .btn{flex:1;justify-content:center;padding:14px}
+  .btn.start{background:var(--hr);color:#04211d;border-color:transparent}
+  .btn.pause{background:var(--warn);color:#241800;border-color:transparent}
+  .btn.end{background:var(--panel2);border-color:var(--line)}
+
+  /* preview toggle in control */
+  .preview-wrap{padding:10px 12px 0}
+  .preview-wrap .mon{border-radius:var(--r)}
+  .mon.mini{height:210px}
+  body[data-view="control"] .preview-wrap .mon.mini{height:190px}
+
+  /* ---------------- SOLO ---------------- */
+  #view-solo{background:var(--bg)}
+  .solo-grid{flex:1;display:grid;grid-template-rows:minmax(220px,42%) 1fr;min-height:0;gap:0}
+  .solo-mon{min-height:0;border-bottom:1px solid var(--line);position:relative}
+  .solo-mon .mon{height:100%}
+  .solo-ctrl{min-height:0;overflow:hidden;display:flex;flex-direction:column}
+  @media(min-width:900px){
+    .solo-grid{grid-template-rows:none;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr)}
+    .solo-mon{border-bottom:none;border-right:1px solid var(--line)}
+  }
+
+  /* ---------------- MODAL ---------------- */
+  .modal{position:fixed;inset:0;background:rgba(3,7,12,.72);display:none;place-items:center;z-index:60;padding:18px}
+  .modal.open{display:grid}
+  .sheet{width:100%;max-width:640px;max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--r-lg);box-shadow:var(--shadow)}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--panel)}
+  .sheet-head h2{margin:0;font-size:17px}
+  .sheet-head .x{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);font-size:18px;display:grid;place-items:center}
+  .sheet-body{padding:18px}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:14px 0}
+  .metric{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .metric .mv{font-family:var(--font-num);font-size:26px;font-weight:800}
+  .metric .ml{font-size:11.5px;color:var(--ink-dim);margin-top:2px}
+  .score-ring{display:flex;align-items:center;gap:16px;margin-bottom:6px}
+  .ring{--p:0;width:96px;height:96px;border-radius:50%;flex:0 0 auto;
+    background:conic-gradient(var(--accent) calc(var(--p)*1%),var(--line-soft) 0);display:grid;place-items:center}
+  .ring .inner{width:76px;height:76px;border-radius:50%;background:var(--panel);display:grid;place-items:center;flex-direction:column}
+  .ring .inner b{font-family:var(--font-num);font-size:26px;font-weight:800;line-height:1}
+  .ring .inner small{font-size:10px;color:var(--ink-faint)}
+  .decision .seg button.on{background:var(--accent);color:var(--accent-ink)}
+  .ref-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+  .ref-tbl th,.ref-tbl td{border:1px solid var(--line);padding:6px 8px;text-align:center;font-family:var(--font-num)}
+  .ref-tbl th{background:var(--bg2);color:var(--ink-dim);font-weight:700}
+  .ref-note{font-size:11.5px;color:var(--ink-faint);margin-top:8px;line-height:1.5}
+  .divider{height:1px;background:var(--line);margin:16px 0}
+  h4.sub{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);margin:2px 0 8px}
+
+  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:var(--raise);border:1px solid var(--line);border-radius:11px;padding:11px 16px;font-size:13.5px;font-weight:650;
+    z-index:80;transition:.22s;pointer-events:none;box-shadow:var(--shadow);max-width:90vw;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important;transition-duration:.06s !important}
+  }
+  @media (max-width:520px){
+    .mon-grid{grid-template-columns:1fr}
+    .waves{border-right:none;border-bottom:1px solid #0f2130}
+    .nums{grid-template-rows:none;grid-template-columns:1fr 1fr}
+    .tile{border-right:1px solid #0c1c2a}
+    .setup-row{grid-template-columns:1fr}
+  }
+  /* print / PDF report */
+  @media print{
+    body{overflow:visible;background:#fff;color:#111}
+    .view,.modal{position:static !important;display:none !important}
+    #print-report{display:block !important}
+  }
+  #print-report{display:none;padding:26px;color:#111;background:#fff;font-size:13px}
+  #print-report h1{font-size:20px;margin:0 0 4px}
+  #print-report .pr-meta{color:#555;font-size:12px;margin-bottom:14px}
+  #print-report table{width:100%;border-collapse:collapse;margin:8px 0}
+  #print-report th,#print-report td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:12px}
+  #print-report .pr-brand{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:14px}
+</style>
+</head>
+<body data-view="home">
+
+<!-- ==================== HOME ==================== -->
+<section id="view-home" class="view">
+  <div class="home-wrap">
+    <div class="brandline">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M4 27h7l3-9 5 17 5-24 4 16 3-6h8" stroke="#2fe08a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <div><b>SimCopilot</b><br><span>EDUVESA · NRP + PALS</span></div>
+    </div>
+    <div class="hero">
+      <h1>Entrena decisiones.<br><em>Observa la respuesta.</em></h1>
+      <p>Simulador copiloto para instructores. Controla el monitor de signos vitales desde tu celular mientras el equipo lo ve en otra pantalla. Sin internet, sin cuentas.</p>
+    </div>
+    <div class="roles">
+      <button class="role r-monitor" data-open="monitor">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="4.5" width="19" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M5 12h3l1.5-4 2.5 8 2-6 1.5 2H19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 20h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+        <h3>Abrir Monitor</h3>
+        <small>La pantalla que ve el equipo. Ábrela en la tablet, TV o proyector.</small>
+        <span class="go">Mostrar monitor →</span>
+      </button>
+      <button class="role r-control" data-open="control">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none"><rect x="6" y="2.5" width="12" height="19" rx="3" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="17.5" r="1.3" fill="currentColor"/><path d="M9.5 6.5h5M9.5 9.5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+        <h3>Abrir Control</h3>
+        <small>El copiloto en tu celular. Ajusta signos, ritmo y eventos en tiempo real.</small>
+        <span class="go">Tomar el control →</span>
+      </button>
+      <button class="role r-solo" data-open="solo">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="3.5" width="19" height="10" rx="2" stroke="currentColor" stroke-width="1.7"/><rect x="6" y="16.5" width="12" height="5" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg></span>
+        <h3>Todo en uno</h3>
+        <small>Monitor y control en la misma pantalla. Ideal para una sola tablet o práctica en solitario.</small>
+        <span class="go">Abrir sesión →</span>
+      </button>
+    </div>
+    <div class="home-foot">
+      <div class="install-row">
+        <button class="btn primary" id="btn-install" style="display:none"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Instalar app</button>
+        <button class="btn ghost" id="btn-help"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.7-1.5 1.2-1.5 2.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>Cómo se usa</button>
+      </div>
+      <p class="home-note"><b>Local:</b> abre Monitor y Control en dos ventanas del mismo equipo y se sincronizan solos, sin internet. <b>Remoto:</b> conecta dos dispositivos con un código (⇄ Remoto). Herramienta educativa; no sustituye los protocolos vigentes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== MONITOR ==================== -->
+<section id="view-monitor" class="view">
+  <div class="topbar">
+    <button class="back" data-open="home">‹ Inicio</button>
+    <div class="conn" id="mon-conn"><span class="dot"></span><span class="txt">Buscando control…</span></div>
+    <button class="back" data-remote>⇄ Remoto</button>
+    <div class="spacer"></div>
+    <div class="timer num" id="mon-timer">00:00</div>
+  </div>
+  <div class="mon" id="mon-full"></div>
+</section>
+
+<!-- ==================== CONTROL ==================== -->
+<section id="view-control" class="view">
+  <div class="topbar">
+    <button class="back" data-open="home">‹ Inicio</button>
+    <b style="font-size:14px" id="ctrl-title">Control · copiloto</b>
+    <div class="spacer"></div>
+    <button class="back" data-remote>⇄ Remoto</button>
+    <div class="conn" id="ctrl-conn"><span class="dot"></span><span class="txt">Sin monitor</span></div>
+    <div class="timer num" id="ctrl-timer">00:00</div>
+  </div>
+  <div class="preview-wrap"><div class="mon mini" id="mon-preview"></div></div>
+  <div class="ctrl-scroll"><div class="ctrl-wrap" id="ctrl-body"></div></div>
+  <div class="ctrl-foot" id="ctrl-foot"></div>
+</section>
+
+<!-- ==================== SOLO ==================== -->
+<section id="view-solo" class="view">
+  <div class="topbar">
+    <button class="back" data-open="home">‹ Inicio</button>
+    <b style="font-size:14px">Todo en uno</b>
+    <div class="spacer"></div>
+    <button class="back" data-remote>⇄ Remoto</button>
+    <div class="timer num" id="solo-timer">00:00</div>
+  </div>
+  <div class="solo-grid">
+    <div class="solo-mon"><div class="mon" id="mon-solo"></div></div>
+    <div class="solo-ctrl">
+      <div class="ctrl-scroll"><div class="ctrl-wrap" id="ctrl-body-solo"></div></div>
+      <div class="ctrl-foot" id="ctrl-foot-solo"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== MODALS ==================== -->
+<div class="modal" id="modal-debrief">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Debriefing estructurado</h2><button class="x" data-close>×</button></div>
+    <div class="sheet-body" id="debrief-body"></div>
+  </div>
+</div>
+<div class="modal" id="modal-help">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Cómo se usa</h2><button class="x" data-close>×</button></div>
+    <div class="sheet-body" id="help-body"></div>
+  </div>
+</div>
+<div class="modal" id="modal-ref">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Referencias clínicas</h2><button class="x" data-close>×</button></div>
+    <div class="sheet-body" id="ref-body"></div>
+  </div>
+</div>
+
+<div class="modal" id="modal-remote">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Conectar en remoto</h2><button class="x" data-close>×</button></div>
+    <div class="sheet-body" id="remote-body"></div>
+  </div>
+</div>
+
+<div id="print-report"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   SimCopilot EDUVESA — lógica
+   ============================================================ */
+
+/* ---------- utilidades ---------- */
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const now=()=>Date.now();
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1600);}
+function fmtClock(s){const m=Math.floor(s/60),ss=s%60;return String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");}
+
+/* ---------- ritmos ---------- */
+const RHYTHMS={
+  sinusal:{label:"Sinusal",pulse:true,tag:"Perfusión"},
+  bradicardia:{label:"Bradicardia",pulse:true,tag:"FC baja"},
+  taqui:{label:"Taq. sinusal",pulse:true,tag:"FC alta"},
+  tsv:{label:"TSV",pulse:true,tag:"Estrecho rápido"},
+  tv:{label:"TV",pulse:false,tag:"Ancho"},
+  fv:{label:"FV",pulse:false,tag:"Desfibrilable"},
+  aesp:{label:"AESP",pulse:false,tag:"Actividad sin pulso"},
+  asistolia:{label:"Asistolia",pulse:false,tag:"Sin actividad"}
+};
+const SHOCKABLE={fv:1,tv:1};
+
+/* ---------- intervenciones por programa ---------- */
+const ACTIONS={
+  PALS:[
+    ["rcp","RCP de alta calidad"],["via","Vía aérea / ventilación"],["ox","Oxígeno"],
+    ["mon","Monitor / desfibrilador"],["acc","Acceso IV / IO"],["desf","Desfibrilación"],
+    ["adr","Adrenalina"],["ami","Amiodarona / lidocaína"],["ade","Adenosina"],
+    ["cvs","Cardioversión sincronizada"],["liq","Bolo de líquidos"],["hyt","Buscar H y T"]
+  ],
+  NRP:[
+    ["pasos","Pasos iniciales"],["oxi","Oxímetro + ECG"],["vpp","VPP"],
+    ["mrsopa","Corregir ventilación (MR SOPA)"],["ava","Vía aérea avanzada"],
+    ["comp","Compresiones 3:1"],["adr","Adrenalina"],["vol","Expansor de volumen"],["term","Control térmico"]
+  ]
+};
+
+/* ---------- rangos de referencia (educativos, configurables) ---------- */
+/* PALS: por banda de edad, despierto. NRP: recién nacido. */
+const AGE_BANDS={
+  neonato:{label:"Neonato",hr:[90,180],rr:[40,60],sbp:[60,90]},
+  lactante:{label:"Lactante",hr:[100,180],rr:[30,53],sbp:[70,100]},
+  preescolar:{label:"Preescolar",hr:[90,150],rr:[22,37],sbp:[86,106]},
+  escolar:{label:"Escolar",hr:[70,120],rr:[18,25],sbp:[90,115]},
+  adolescente:{label:"Adolescente",hr:[60,100],rr:[12,20],sbp:[100,131]}
+};
+/* SpO2 objetivo preductal NRP por minuto de vida */
+const NRP_SPO2=[[1,60,65],[2,65,70],[3,70,75],[4,75,80],[5,80,85],[10,85,95]];
+function nrpSpo2Target(min){let t=[85,95];for(const[m,lo,hi]of NRP_SPO2){if(min>=m)t=[lo,hi];}return t;}
+
+function ranges(state){
+  const b=AGE_BANDS[state.patient.ageBand]||AGE_BANDS.escolar;
+  let spo2=[94,100];
+  if(state.program==="NRP"){const min=Math.max(1,Math.floor(state.elapsed/60)+1);spo2=nrpSpo2Target(min);}
+  return {
+    hr:b.hr, rr:b.rr, sbp:b.sbp, spo2:spo2, etco2:[35,45], temp:[365,375]
+  };
+}
+/* devuelve ok|warn|crit para colorear */
+function statusOf(key,val,state){
+  if(val==null||val==="--")return "off";
+  const r=ranges(state); const rng=r[key]; if(!rng)return "ok";
+  let [lo,hi]=rng;
+  if(key==="temp")val=Math.round(val*10);
+  const span=hi-lo||1;
+  const critLo=lo-span*0.6, critHi=hi+span*0.6;
+  if(val<critLo||val>critHi)return "crit";
+  if(val<lo||val>hi)return "warn";
+  return "ok";
+}
+
+/* ---------- escenarios (set inicial; ampliable a los 65) ---------- */
+/* v: FC, SpO2, TA sist/diast, FR, ETCO2 */
+const SCN=[
+  // ---- PALS ----
+  {id:"p-asma",prog:"PALS",dif:"Intermedia",band:"escolar",w:22,age:"7 años",title:"Crisis asmática grave",
+   brief:"Escolar con sibilancias, tiraje y SpO₂ 88%. Riesgo de falla respiratoria.",
+   v:{hr:150,spo2:88,sbp:105,dbp:65,rr:36,etco2:48},rhythm:"taqui",
+   key:["ox","via","mon"],det:{spo2:80,hr:170,rr:44,etco2:60},mej:{spo2:95,hr:120,rr:26,etco2:40}},
+  {id:"p-anafi",prog:"PALS",dif:"Intermedia",band:"preescolar",w:15,age:"3 años",title:"Anafilaxia",
+   brief:"Urticaria, estridor e hipotensión tras alimento. Compromiso de vía aérea.",
+   v:{hr:165,spo2:90,sbp:74,dbp:40,rr:34,etco2:34},rhythm:"taqui",
+   key:["ox","via","acc","liq"],det:{spo2:82,sbp:60,hr:185},mej:{spo2:96,sbp:95,hr:120,rr:24}},
+  {id:"p-sepsis",prog:"PALS",dif:"Avanzada",band:"lactante",w:8,age:"9 meses",title:"Choque séptico",
+   brief:"Lactante febril, llenado capilar lento, letárgico. Choque descompensado.",
+   v:{hr:190,spo2:92,sbp:66,dbp:38,rr:48,etco2:30},rhythm:"taqui",
+   key:["ox","acc","liq","mon","hyt"],det:{sbp:52,hr:205,spo2:85},mej:{sbp:85,hr:150,spo2:96}},
+  {id:"p-tsv",prog:"PALS",dif:"Intermedia",band:"lactante",w:7,age:"6 meses",title:"TSV con perfusión",
+   brief:"Taquicardia estrecha regular ~230 lpm, irritable, perfusión conservada.",
+   v:{hr:230,spo2:96,sbp:82,dbp:48,rr:40,etco2:36},rhythm:"tsv",
+   key:["mon","acc","ade","cvs"],det:{sbp:64,spo2:90},mej:{hr:130,sbp:88,spo2:98}},
+  {id:"p-fv",prog:"PALS",dif:"Avanzada",band:"escolar",w:25,age:"8 años",title:"Paro — FV",
+   brief:"Colapso súbito, sin pulso. Ritmo desfibrilable en el monitor.",
+   v:{hr:0,spo2:null,sbp:null,dbp:null,rr:0,etco2:12},rhythm:"fv",
+   key:["rcp","mon","desf","acc","adr","ami","hyt"],det:{etco2:8},mej:{}},
+  {id:"p-aesp",prog:"PALS",dif:"Avanzada",band:"preescolar",w:16,age:"4 años",title:"Paro — AESP",
+   brief:"Actividad eléctrica organizada, sin pulso palpable. Buscar causas.",
+   v:{hr:52,spo2:null,sbp:null,dbp:null,rr:0,etco2:14},rhythm:"aesp",
+   key:["rcp","acc","adr","liq","hyt"],det:{etco2:9},mej:{}},
+  {id:"p-brady",prog:"PALS",dif:"Básica",band:"lactante",w:6,age:"3 meses",title:"Bradicardia con hipoperfusión",
+   brief:"FC 48 con mala perfusión pese a oxigenación y ventilación.",
+   v:{hr:48,spo2:89,sbp:62,dbp:36,rr:22,etco2:34},rhythm:"bradicardia",
+   key:["ox","via","rcp","adr"],det:{hr:36,spo2:80,sbp:50},mej:{hr:120,spo2:96,sbp:82}},
+  {id:"p-tce",prog:"PALS",dif:"Intermedia",band:"adolescente",w:50,age:"14 años",title:"TCE / vía aérea",
+   brief:"Trauma craneal, Glasgow bajo, riesgo de hipoventilación e hipoxia.",
+   v:{hr:58,spo2:91,sbp:150,dbp:88,rr:10,etco2:30},rhythm:"bradicardia",
+   key:["via","ox","mon","hyt"],det:{spo2:82,rr:6,hr:44},mej:{spo2:97,rr:16,hr:78}},
+  // ---- NRP ----
+  {id:"n-apnea",prog:"NRP",dif:"Básica",band:"neonato",w:3.3,age:"RN término",title:"Apnea primaria",
+   brief:"RN sin respiración eficaz tras pasos iniciales. Requiere VPP.",
+   v:{hr:80,spo2:60,sbp:null,dbp:null,rr:0,etco2:null},rhythm:"bradicardia",
+   key:["pasos","oxi","vpp","mrsopa"],det:{hr:54,spo2:45},mej:{hr:140,spo2:88,rr:44}},
+  {id:"n-brady",prog:"NRP",dif:"Intermedia",band:"neonato",w:3.0,age:"RN término",title:"Bradicardia persistente",
+   brief:"FC 50 pese a VPP. Verificar ventilación (MR SOPA) antes de comprimir.",
+   v:{hr:50,spo2:52,sbp:null,dbp:null,rr:0,etco2:null},rhythm:"bradicardia",
+   key:["vpp","mrsopa","oxi","comp"],det:{hr:38,spo2:40},mej:{hr:130,spo2:82,rr:40}},
+  {id:"n-paro",prog:"NRP",dif:"Avanzada",band:"neonato",w:2.8,age:"RN término",title:"FC < 60 — compresiones",
+   brief:"FC 40 tras ventilación efectiva. Compresiones 3:1 + adrenalina.",
+   v:{hr:40,spo2:48,sbp:null,dbp:null,rr:0,etco2:null},rhythm:"aesp",
+   key:["vpp","ava","comp","adr","oxi"],det:{hr:0},mej:{hr:120,spo2:78}},
+  {id:"n-prem",prog:"NRP",dif:"Avanzada",band:"neonato",w:1.2,age:"RN 29 sem",title:"Prematuro — termorregulación",
+   brief:"Prematuro con dificultad respiratoria; prioriza calor, SpO₂ y CPAP/VPP.",
+   v:{hr:110,spo2:62,sbp:null,dbp:null,rr:70,etco2:null},rhythm:"taqui",
+   key:["term","oxi","vpp","pasos"],det:{spo2:48,hr:90},mej:{spo2:90,hr:150,rr:50}},
+  {id:"n-mec",prog:"NRP",dif:"Intermedia",band:"neonato",w:3.5,age:"RN postérmino",title:"Líquido meconial no vigoroso",
+   brief:"RN no vigoroso con meconio. Pasos iniciales y VPP según respuesta.",
+   v:{hr:78,spo2:58,sbp:null,dbp:null,rr:0,etco2:null},rhythm:"bradicardia",
+   key:["pasos","vpp","mrsopa","oxi"],det:{hr:52,spo2:44},mej:{hr:145,spo2:86,rr:46}},
+  {id:"n-vol",prog:"NRP",dif:"Avanzada",band:"neonato",w:3.2,age:"RN término",title:"Hipovolemia / palidez",
+   brief:"RN pálido, mala perfusión, escasa respuesta. Considerar expansor de volumen.",
+   v:{hr:96,spo2:60,sbp:null,dbp:null,rr:30,etco2:null},rhythm:"bradicardia",
+   key:["vpp","oxi","vol","comp"],det:{hr:60,spo2:48},mej:{hr:150,spo2:85}},
+  {id:"n-trans",prog:"NRP",dif:"Básica",band:"neonato",w:3.4,age:"RN término",title:"Transición normal",
+   brief:"RN vigoroso; solo requiere pasos iniciales y monitoreo de SpO₂.",
+   v:{hr:130,spo2:65,sbp:null,dbp:null,rr:44,etco2:null},rhythm:"sinusal",
+   key:["pasos","oxi"],det:{spo2:80,hr:110},mej:{spo2:94,hr:150}}
+];
+
+/* ---------- estado ---------- */
+function baseState(){
+  const s=SCN[0];
+  return {
+    program:"PALS", difficulty:"Intermedia", scenarioId:s.id,
+    patient:{age:s.age,weightKg:s.w,ageBand:s.band,type:s.title},
+    vitals:{...s.v}, rhythm:s.rhythm, pulseOverride:null,
+    running:false, elapsed:0,
+    doneActions:[], criticalErrors:0, notes:[], events:[],
+    decision:"", instructor:"", team:"", scenarioTitle:s.title, scenarioBrief:s.brief, scenarioKey:s.key,
+    _rev:0
+  };
+}
+let state=baseState();
+function pulseNow(){ if(state.pulseOverride!=null)return state.pulseOverride; return !!RHYTHMS[state.rhythm].pulse; }
+
+/* ---------- sincronización (BroadcastChannel, mismo equipo/offline) ---------- */
+const CH_NAME="simcopilot-eduvesa";
+let channel=null;
+try{ channel=new BroadcastChannel(CH_NAME); }catch(e){ channel=null; }
+let VIEW="home";
+let authoritative=false; // control/solo mandan; monitor recibe
+let lastRemote=0;
+function broadcast(type,extra){
+  if(channel){try{channel.postMessage({type,from:VIEW,t:now(),state:type==="state"?state:undefined,...extra});}catch(e){}}
+  if(type==="state"&&authoritative&&Remote.active)Remote.push();
+}
+if(channel){
+  channel.onmessage=(e)=>{
+    const m=e.data||{}; lastRemote=now();
+    if(VIEW==="monitor"){
+      if(m.type==="state"&&m.state){ state=m.state; monitors.forEach(mo=>mo.update(state)); syncTimers(); }
+      updateConn();
+    }else if(authoritative){
+      if(m.type==="hello"){ broadcast("state"); } // un monitor pidió estado
+      updateConn();
+    }
+  };
+}
+// latidos de presencia
+setInterval(()=>{
+  if(VIEW==="monitor") broadcast("hello");
+  else if(authoritative) broadcast("state");
+  updateConn();
+},2000);
+
+/* ============================================================
+   SINCRONIZACIÓN REMOTA OPCIONAL (Firebase Realtime Database)
+   ------------------------------------------------------------
+   >>> PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE (una sola vez) <<<
+   Console de Firebase → Configuración del proyecto → Tus apps →
+   SDK. Debe incluir databaseURL. Déjalo vacío para usar solo el
+   modo local (dos ventanas del mismo equipo, sin internet).
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  // apiKey: "TU_API_KEY",
+  // authDomain: "TU_PROYECTO.firebaseapp.com",
+  // databaseURL: "https://TU_PROYECTO-default-rtdb.firebaseio.com",
+  // projectId: "TU_PROYECTO",
+  // appId: "TU_APP_ID"
+};
+function loadScript(src){return new Promise((res,rej)=>{if([...document.scripts].some(s=>s.src===src))return res();const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+const Remote={
+  active:false, code:null, role:null, ref:null, db:null, loaded:false, lastIn:0, _lp:0,
+  configured(){return !!(FIREBASE_CONFIG && FIREBASE_CONFIG.databaseURL);},
+  async load(){
+    if(this.loaded)return true;
+    if(!this.configured())return false;
+    await loadScript("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
+    await loadScript("https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js");
+    firebase.initializeApp(FIREBASE_CONFIG);
+    this.db=firebase.database(); this.loaded=true; return true;
+  },
+  async host(code){
+    if(!(await this.load()))return false;
+    this.code=code; this.role="host"; this.active=true; this.lastIn=now();
+    this.ref=this.db.ref("rooms/"+code);
+    this.ref.child("hello").on("value",(s)=>{ if(s.val()){this.lastIn=now();updateConn();} });
+    this.push();
+    this._hb=setInterval(()=>{ if(this.ref){try{this.ref.child("beat").set(now());}catch(e){}} },2000);
+    return true;
+  },
+  async join(code){
+    if(!(await this.load()))return false;
+    this.code=code; this.role="guest"; this.active=true; this.lastIn=now();
+    this.ref=this.db.ref("rooms/"+code);
+    this.ref.child("state").on("value",(snap)=>{ const v=snap.val(); if(v){ state=v; monitors.forEach(m=>m.update(state)); syncTimers(); } this.lastIn=now(); updateConn(); });
+    this.ref.child("beat").on("value",()=>{ this.lastIn=now(); updateConn(); });
+    const write=()=>{ if(this.ref){try{this.ref.child("hello").set(now());}catch(e){}} };
+    write(); this._hb=setInterval(write,2500);
+    return true;
+  },
+  push(){
+    if(!(this.active&&this.role==="host"&&this.ref))return;
+    const t=now(); if(t-this._lp<180){clearTimeout(this._pt);this._pt=setTimeout(()=>this.push(),190);return;}
+    this._lp=t; try{this.ref.child("state").set(state);}catch(e){}
+  },
+  stop(){ try{if(this.ref)this.ref.off();}catch(e){} clearInterval(this._hb); this.active=false; this.code=null; this.role=null; this.ref=null; }
+};
+
+function updateConn(){
+  const localLive=(now()-lastRemote)<4500;
+  const remoteLive=Remote.active&&(now()-Remote.lastIn)<7000;
+  const live=localLive||remoteLive;
+  const mc=$("#mon-conn"), cc=$("#ctrl-conn");
+  let mtxt, ctxt;
+  if(Remote.active){ mtxt=ctxt="Sala "+Remote.code+(remoteLive?"":" · esperando…"); }
+  else { mtxt=localLive?"Control conectado":"Buscando control…"; ctxt=localLive?"Monitor conectado":"Sin monitor"; }
+  if(mc){mc.classList.toggle("live",live);mc.querySelector(".txt").textContent=mtxt;}
+  if(cc){cc.classList.toggle("live",live);cc.querySelector(".txt").textContent=ctxt;}
+}
+
+/* ---------- monitor: componente reutilizable ---------- */
+const CH_COLORS={hr:"var(--hr)",spo2:"var(--spo2)",bp:"var(--bp)",rr:"var(--rr)",etco2:"var(--etco2)",temp:"var(--temp)"};
+function createMonitor(root,{mini=false}={}){
+  root.classList.add("mon"); if(mini)root.classList.add("mini");
+  root.innerHTML=`
+    <div class="mon-status">
+      <div class="pt"></div><div class="spacer" style="flex:1"></div>
+      <div class="alarms"></div>
+      <div class="rhythm"></div>
+    </div>
+    <div class="mon-grid">
+      <div class="waves">
+        <div class="wave"><span class="wlabel" style="color:var(--hr)">ECG II</span><canvas data-w="ecg"></canvas></div>
+        <div class="wave"><span class="wlabel" style="color:var(--spo2)">Pleth</span><canvas data-w="pleth"></canvas></div>
+        <div class="wave"><span class="wlabel" style="color:var(--etco2)">CO₂</span><canvas data-w="capno"></canvas></div>
+      </div>
+      <div class="nums">
+        ${tile("hr","FC","lpm")}${tile("spo2","SpO₂","%")}${tile("bp","TA","mmHg")}${tile("rr","FR","rpm")}${tile("etco2","ETCO₂","mmHg")}
+      </div>
+    </div>
+    <div class="mon-ticker"><span class="ev">—</span></div>
+    <div class="disclaimer">Herramienta educativa · No sustituye protocolos vigentes · SimCopilot EDUVESA</div>
+    <div class="no-signal"><div class="box"><h3>Sin señal del control</h3><p>Abre el <b>Control</b> en otra ventana de este equipo. El monitor se conectará automáticamente.</p></div></div>`;
+  function tile(key,lab,unit){return `<div class="tile" data-tile="${key}">
+     <div class="thead"><span class="tlabel" style="color:${CH_COLORS[key]}">${lab}</span><span class="trange"></span></div>
+     <div class="tval" style="color:${CH_COLORS[key]}"><span class="v">--</span><span class="tunit">${unit}</span></div></div>`;}
+
+  const canv={}; ["ecg","pleth","capno"].forEach(k=>{const c=root.querySelector(`canvas[data-w="${k}"]`);canv[k]={c,ctx:c.getContext("2d"),buf:[],head:0}});
+  const engine=new WaveEngine(canv,()=>state);
+  engine.start();
+
+  function update(st){
+    const p=pulseNow();
+    // rhythm badge
+    const rb=root.querySelector(".rhythm"); rb.textContent=RHYTHMS[st.rhythm].label; rb.classList.toggle("nopulse",!p);
+    // patient
+    root.querySelector(".pt").innerHTML=`<b>${st.patient.type}</b> · ${st.patient.age} · ${st.patient.weightKg} kg · <b>${st.program}</b>`;
+    // numbers
+    setTile("hr", (st.rhythm==="fv")?"--":(st.rhythm==="asistolia"?"--":val(st.vitals.hr)), st.vitals.hr);
+    setTile("spo2", p?val(st.vitals.spo2):"--", p?st.vitals.spo2:null);
+    setTile("bp", p&&st.vitals.sbp!=null?`${st.vitals.sbp}/${st.vitals.dbp??"–"}`:"--/--", p?st.vitals.sbp:null,"sbp");
+    setTile("rr", val(st.vitals.rr), st.vitals.rr);
+    setTile("etco2", val(st.vitals.etco2), st.vitals.etco2);
+    // alarms
+    renderAlarms(st,p);
+    // ticker
+    const ev=st.events[st.events.length-1];
+    root.querySelector(".mon-ticker .ev").innerHTML = ev?`<b>${fmtClock(ev.t)}</b> ${ev.text}`:"Sesión lista";
+    // ranges hint
+    const r=ranges(st);
+    hint("hr",r.hr);hint("spo2",r.spo2);hint("rr",r.rr);hint("etco2",r.etco2);
+    root.querySelector('[data-tile="bp"] .trange').textContent = r.sbp?`${r.sbp[0]}–${r.sbp[1]}`:"";
+  }
+  function val(x){return (x==null)?"--":x;}
+  function setTile(key,text,rawForColor,rkey){
+    const t=root.querySelector(`[data-tile="${key}"]`); if(!t)return;
+    t.querySelector(".v").textContent=text;
+    const stt=statusOf(rkey||key, rawForColor, state);
+    const col= stt==="crit"?"var(--crit)": stt==="warn"?"var(--warn)": CH_COLORS[key];
+    t.querySelector(".tval").style.color=col;
+    t.classList.toggle("crit", stt==="crit");
+  }
+  function hint(key,rng){const el=root.querySelector(`[data-tile="${key}"] .trange`); if(el&&rng)el.textContent=`${rng[0]}–${rng[1]}`;}
+  function renderAlarms(st,p){
+    const box=root.querySelector(".alarms"); const A=[];
+    if(!p) A.push(["SIN PULSO","crit"]);
+    const checks=[["hr",st.vitals.hr,"FC"],["spo2",p?st.vitals.spo2:null,"SpO₂"],["rr",st.vitals.rr,"FR"],["etco2",st.vitals.etco2,"ETCO₂"]];
+    for(const[k,v,lab]of checks){const s=statusOf(k,v,st);if(s==="crit"||s==="warn"){const r=ranges(st)[k];const dir=(v<r[0])?"BAJA":"ALTA";A.push([`${lab} ${dir}`,s]);}}
+    box.innerHTML=A.slice(0,4).map(([t,c])=>`<span class="alarm ${c}">${t}</span>`).join("");
+  }
+  return {update,engine,root,destroy(){try{engine.stop();}catch(e){} root.innerHTML="";}};
+}
+const monitors=[]; // instancias en esta ventana
+
+/* ---------- motor de trazos ---------- */
+function WaveEngine(canv,getState){
+  const self=this; let raf=0; let last=performance.now();
+  const SWEEP=170; // px/seg
+  let ecgPhase=0, plethPhase=0, capnoPhase=0;
+  function resize(){for(const k in canv){const o=canv[k];const dpr=Math.min(2,window.devicePixelRatio||1);
+    const w=o.c.clientWidth||300,h=o.c.clientHeight||80;o.c.width=w*dpr;o.c.height=h*dpr;o.ctx.setTransform(dpr,0,0,dpr,0,0);
+    if(!o.buf.length){o.buf=new Array(Math.max(2,Math.floor(w))).fill(null);o.head=0;o.w=w;o.h=h;}else{
+      const nb=new Array(Math.max(2,Math.floor(w))).fill(null);o.buf=nb;o.head=0;o.w=w;o.h=h;}}}
+  const RO=new ResizeObserver(resize); for(const k in canv)RO.observe(canv[k].c);
+  setTimeout(resize,30);
+
+  function ecgVal(p,st){ // p en [0,1) del ciclo cardiaco
+    const rh=st.rhythm;
+    if(rh==="asistolia")return (Math.random()-.5)*0.02;
+    if(rh==="fv"){return (Math.random()-.5)*0.9*(0.6+0.4*Math.sin(p*6.28*3));}
+    if(rh==="tv"){return Math.sin(p*6.28*1)*0.75 - Math.sin(p*6.28*2)*0.15;}
+    // morfología PQRST (sinusal/brady/taqui/tsv/aesp)
+    let y=0;
+    const narrowP = rh!=="tsv";
+    if(narrowP && p>0.12 && p<0.20) y+=Math.sin((p-0.12)/0.08*Math.PI)*0.12; // P
+    if(p>0.30 && p<0.34) y-=(p-0.30)/0.04*0.18;      // Q
+    if(p>=0.34 && p<0.37) y+= 0.95*((p-0.34)/0.03) -0.045; // R up
+    if(p>=0.37 && p<0.40) y+= 0.9 - (p-0.37)/0.03*1.15;    // R down -> S
+    if(p>=0.40 && p<0.43) y+= -0.25 + (p-0.40)/0.03*0.25;  // return
+    if(p>0.55 && p<0.72) y+=Math.sin((p-0.55)/0.17*Math.PI)*0.20; // T
+    return y;
+  }
+  function plethVal(p){ // onda pulsátil suave
+    const up=Math.pow(Math.sin(Math.min(p,0.5)*Math.PI),1.6);
+    const dic= p>0.5? Math.sin((p-0.5)*Math.PI)*0.12:0;
+    return (up*0.9+dic) - 0.1;
+  }
+  function capnoVal(p){ // meseta cuadrada
+    if(p<0.10)return -0.85;
+    if(p<0.18)return -0.85+(p-0.10)/0.08*1.55; // ascenso rápido
+    if(p<0.70)return 0.70+(p-0.18)*0.08;        // meseta con leve pendiente
+    if(p<0.78)return 0.74-(p-0.70)/0.08*1.6;    // caída inspiratoria
+    return -0.85;
+  }
+
+  function frame(t){
+    const dt=Math.min(0.05,(t-last)/1000); last=t;
+    const st=getState(); const p=pulseNow();
+    let hr=st.vitals.hr||0;
+    if(st.rhythm==="fv")hr=300; if(st.rhythm==="tv")hr=st.vitals.hr||180; if(st.rhythm==="asistolia")hr=0;
+    const rr=st.vitals.rr||0;
+    const beat=hr>0?hr/60:0;           // ciclos/seg ECG
+    const breath=rr>0?rr/60:0;         // ciclos/seg CO2
+    ecgPhase=(ecgPhase+beat*dt)%1;
+    plethPhase=(plethPhase+beat*dt)%1;
+    capnoPhase=(capnoPhase+breath*dt)%1;
+
+    drawWave(canv.ecg, dt, ()=> (hr>0? ecgVal(ecgPhase,st): (Math.random()-.5)*0.02), "var(--hr)");
+    drawWave(canv.pleth, dt, ()=> (p&&beat>0? plethVal(plethPhase): -0.9+(Math.random()-.5)*0.01), "var(--spo2)");
+    drawWave(canv.capno, dt, ()=> ((rr>0 && st.vitals.etco2)? capnoVal(capnoPhase)*(clamp((st.vitals.etco2||0)/45,0.2,1.2)) : -0.9), "var(--etco2)");
+    raf=requestAnimationFrame(frame);
+  }
+
+  function drawWave(o,dt,sampler,color){
+    if(!o.w)return;
+    const ctx=o.ctx, w=o.w, h=o.h, mid=h*0.55, amp=h*0.40;
+    const step=SWEEP*dt;
+    // avanzar cabeza escribiendo muestras
+    o._acc=(o._acc||0)+step;
+    while(o._acc>=1){
+      o.buf[o.head]=sampler();
+      o.head=(o.head+1)%o.buf.length;
+      // hueco de borrado
+      o.buf[(o.head+1)%o.buf.length]=null; o.buf[(o.head+2)%o.buf.length]=null;
+      o._acc-=1;
+    }
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle=getCSS(color); ctx.lineWidth=1.8; ctx.lineJoin="round"; ctx.lineCap="round";
+    ctx.shadowColor=getCSS(color); ctx.shadowBlur=6;
+    ctx.beginPath(); let pen=false;
+    for(let x=0;x<o.buf.length;x++){
+      const v=o.buf[x];
+      if(v==null){pen=false;continue;}
+      const y=mid - v*amp;
+      if(!pen){ctx.moveTo(x,y);pen=true;}else ctx.lineTo(x,y);
+    }
+    ctx.stroke(); ctx.shadowBlur=0;
+  }
+  const cssCache={};
+  function getCSS(v){if(!v.startsWith("var("))return v;if(cssCache[v])return cssCache[v];
+    const name=v.slice(4,-1).trim();const c=getComputedStyle(document.documentElement).getPropertyValue(name).trim();cssCache[v]=c||"#2fe08a";return cssCache[v];}
+  this.start=()=>{cancelAnimationFrame(raf);last=performance.now();raf=requestAnimationFrame(frame);};
+  this.stop=()=>{cancelAnimationFrame(raf);try{RO.disconnect();}catch(e){}};
+}
+
+/* ---------- mutaciones de estado ---------- */
+function logEvent(text){ state.events.push({t:state.elapsed,text}); if(state.events.length>40)state.events.shift(); }
+function commit({event,full=false}={}){
+  state._rev++;
+  if(event)logEvent(event);
+  monitors.forEach(mo=>mo.update(state));
+  if(full)renderControls(); else lightRefresh();
+  if(authoritative)broadcast("state");
+}
+/* actualiza solo los valores (sin reconstruir el DOM) para no cortar el arrastre de deslizadores */
+function lightRefresh(){
+  CTRL_TARGETS.forEach(id=>{const root=$("#"+id);if(!root)return;
+    $$(".vc",root).forEach(vc=>{const k=vc.dataset.vc;const v=state.vitals[k];
+      const disp=(k==="spo2"||k==="sbp")&&!pulseNow()?"--":(v==null?"--":v);
+      const vv=vc.querySelector(".vval");if(vv)vv.textContent=disp;
+      const rg=vc.querySelector("input[data-range]");if(rg&&document.activeElement!==rg&&v!=null)rg.value=v;
+    });
+  });
+}
+function setVital(key,delta,abs){
+  const v=state.vitals;
+  const lims={hr:[0,300],spo2:[0,100],sbp:[0,260],dbp:[0,180],rr:[0,90],etco2:[0,100]};
+  let cur=v[key]; if(cur==null)cur=(key==="spo2"?90:key==="etco2"?35:key==="hr"?100:key==="rr"?20:80);
+  let nv= abs!=null? abs : cur+delta;
+  nv=clamp(Math.round(nv),lims[key][0],lims[key][1]);
+  v[key]=nv;
+  if((key==="sbp")&&v.dbp!=null&&v.dbp>nv-10)v.dbp=Math.max(0,nv-30);
+  commit();
+}
+function setRhythm(r){
+  state.rhythm=r; state.pulseOverride=null;
+  const v=state.vitals;
+  const def={sinusal:120,bradicardia:50,taqui:160,tsv:220,tv:180,fv:null,aesp:50,asistolia:0};
+  if(def[r]!=null)v.hr=def[r]; else v.hr=0;
+  if(!RHYTHMS[r].pulse){/* sin pulso: SpO2/TA no fiables */}
+  commit({event:`Ritmo → ${RHYTHMS[r].label}`,full:true});
+}
+function applyPatch(patch,label){
+  for(const k in patch){ if(k in state.vitals) state.vitals[k]=patch[k]; }
+  commit({event:label});
+}
+function loadScenario(id){
+  const s=SCN.find(x=>x.id===id); if(!s)return;
+  state.scenarioId=s.id; state.program=s.prog; state.difficulty=s.dif;
+  state.patient={age:s.age,weightKg:s.w,ageBand:s.band,type:s.title};
+  state.vitals={...s.v}; state.rhythm=s.rhythm; state.pulseOverride=null;
+  state.scenarioTitle=s.title; state.scenarioBrief=s.brief; state.scenarioKey=s.key;
+  state.doneActions=[]; state.criticalErrors=0;
+  commit({event:`Escenario: ${s.title}`,full:true});
+}
+
+/* deterioro / mejoría / paro / rosc */
+function quick(kind){
+  const s=SCN.find(x=>x.id===state.scenarioId);
+  if(kind==="deterioro"){ applyPatch(s&&s.det?s.det:{spo2:clamp((state.vitals.spo2||90)-10,0,100),hr:(state.vitals.hr||100)+20}, "Deterioro clínico"); }
+  else if(kind==="mejoria"){ applyPatch(s&&s.mej?s.mej:{spo2:clamp((state.vitals.spo2||90)+8,0,100)}, "Mejoría clínica"); }
+  else if(kind==="estable"){ if(s){state.vitals={...s.v};state.rhythm=s.rhythm;state.pulseOverride=null;} commit({event:"Reinicio a línea base",full:true});}
+  else if(kind==="paro"){ state.rhythm=(state.program==="NRP")?"aesp":"fv"; state.pulseOverride=false;
+    state.vitals.hr=(state.program==="NRP")?40:0; state.vitals.spo2=null; state.vitals.sbp=null; state.vitals.dbp=null; state.vitals.rr=0; state.vitals.etco2=12;
+    commit({event:"Paro cardiorrespiratorio",full:true}); }
+  else if(kind==="rosc"){ state.rhythm="sinusal"; state.pulseOverride=true;
+    state.vitals.hr=130; state.vitals.spo2=94; state.vitals.sbp=90; state.vitals.dbp=55; state.vitals.rr=24; state.vitals.etco2=38;
+    commit({event:"Retorno de circulación (ROSC)",full:true}); }
+}
+
+/* deterioro progresivo automático */
+let deterInt=null;
+function toggleDeterioro(btn){
+  if(deterInt){clearInterval(deterInt);deterInt=null;btn.classList.remove("armed");btn.textContent="Deterioro progresivo";return;}
+  btn.classList.add("armed");btn.textContent="Detener deterioro";
+  logEvent("Inicia deterioro progresivo"); commit();
+  deterInt=setInterval(()=>{
+    const v=state.vitals;
+    if(v.spo2!=null)v.spo2=clamp(v.spo2-3,20,100);
+    if(pulseNow()){ if(state.rhythm==="bradicardia")v.hr=clamp((v.hr||60)-6,20,300); else v.hr=clamp((v.hr||100)+6,20,300); }
+    if(v.sbp!=null)v.sbp=clamp(v.sbp-5,30,260);
+    commit();
+  },3000);
+}
+
+/* acciones / errores / notas */
+function toggleAction(id){
+  const i=state.doneActions.indexOf(id);
+  const lbl=(ACTIONS[state.program].find(a=>a[0]===id)||[,id])[1];
+  if(i>=0){state.doneActions.splice(i,1);commit({full:true});}
+  else{state.doneActions.push(id);commit({event:`✔ ${lbl}`,full:true});}
+}
+function addCritical(){ state.criticalErrors++; commit({event:"⚠ Error crítico registrado",full:true}); toast("Error crítico registrado"); }
+function addNote(txt){ if(!txt.trim())return; state.notes.push({t:state.elapsed,text:txt.trim()}); commit({event:`Nota: ${txt.trim().slice(0,40)}`,full:true}); }
+
+/* ---------- timer ---------- */
+let timerInt=null;
+function startTimer(){ if(timerInt)return; state.running=true;
+  timerInt=setInterval(()=>{ state.elapsed++; syncTimers(); if(authoritative)broadcast("state"); if(state.program==="NRP"&&state.elapsed%15===0)monitors.forEach(mo=>mo.update(state)); },1000);
+  commit({event:"▶ Cronómetro iniciado"}); renderFoot();
+}
+function pauseTimer(){ state.running=false; clearInterval(timerInt);timerInt=null; commit({event:"⏸ Pausa"}); renderFoot(); }
+function syncTimers(){ ["#mon-timer","#ctrl-timer","#solo-timer"].forEach(sel=>{const el=$(sel);if(el){el.textContent=fmtClock(state.elapsed);el.classList.toggle("run",state.running);}}); }
+
+/* ---------- render de controles ---------- */
+function segHTML(name,opts,cur,cls=""){return `<div class="seg ${cls}" data-seg="${name}">`+opts.map(o=>`<button data-val="${o}" class="${o===cur?'on':''}">${o}</button>`).join("")+`</div>`;}
+
+function controlHTML(){
+  const acts=ACTIONS[state.program];
+  const scnList=SCN.filter(s=>s.prog===state.program);
+  return `
+  <div class="card">
+    <div class="chead"><h2>Preparar sesión</h2><span class="hint">${state.difficulty}</span></div>
+    <div class="setup-row">
+      <div class="field"><label>Programa</label>${segHTML("program",["PALS","NRP"],state.program,"prog")}</div>
+      <div class="field"><label>Dificultad</label>${segHTML("difficulty",["Básica","Intermedia","Avanzada"],state.difficulty)}</div>
+    </div>
+    <div class="field" style="margin-top:10px"><label>Escenario (${scnList.length})</label>
+      <div class="scn-list">${scnList.map(s=>`
+        <button class="scn ${s.id===state.scenarioId?'on':''}" data-scn="${s.id}">
+          <span class="stag ${s.prog.toLowerCase()}">${s.prog}</span>
+          <span><b>${s.title}</b><small>${s.brief}</small></span>
+        </button>`).join("")}</div>
+    </div>
+    <div class="setup-row" style="margin-top:10px">
+      <div class="field"><label>Instructor</label><input type="text" id="f-instr" value="${state.instructor}" placeholder="Nombre"></div>
+      <div class="field"><label>Equipo</label><input type="text" id="f-team" value="${state.team}" placeholder="Grupo / sede"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="chead"><h2>Ajustes rápidos</h2><span class="hint">un toque</span></div>
+    <div class="presets">
+      <button class="preset good" data-q="estable"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12l5 5L20 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Línea base</button>
+      <button class="preset bad" data-q="deterioro"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7l16 10M20 12v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Deterioro</button>
+      <button class="preset good" data-q="mejoria"><svg viewBox="0 0 24 24" fill="none"><path d="M4 17L20 7M20 12V7h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Mejoría</button>
+      <button class="preset crit" data-q="paro"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h4l2-5 3 10 2-5h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Paro</button>
+      <button class="preset rosc" data-q="rosc"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.5-9-9a4.5 4.5 0 019-2 4.5 4.5 0 019 2c-2 4.5-9 9-9 9z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>ROSC</button>
+    </div>
+    <button class="btn warnb" id="btn-deter" style="width:100%;justify-content:center;margin-top:9px">Deterioro progresivo</button>
+  </div>
+
+  <div class="card">
+    <div class="chead"><h2>Signos vitales</h2><span class="hint">peso ${state.patient.weightKg} kg</span></div>
+    <div class="vitctrl">
+      ${vc("hr","FC","var(--hr)",5)}
+      ${vc("spo2","SpO₂","var(--spo2)",1)}
+      ${vc("sbp","TA sist.","var(--bp)",5)}
+      ${vc("rr","FR","var(--rr)",2)}
+      ${vc("etco2","ETCO₂","var(--etco2)",1)}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="chead"><h2>Ritmo</h2><span class="hint">${pulseNow()?"con pulso":"sin pulso"}</span></div>
+    <div class="rhythms">
+      ${Object.entries(RHYTHMS).map(([k,r])=>`<button class="rbtn ${SHOCKABLE[k]?'shock':''} ${state.rhythm===k?'on':''}" data-rh="${k}">${r.label}<small>${r.tag}</small></button>`).join("")}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="chead"><h2>Intervenciones</h2><span class="hint">${state.doneActions.length}/${acts.length}</span></div>
+    <div class="actions">
+      ${acts.map(([id,lab])=>`<button class="act ${state.doneActions.includes(id)?'done':''}" data-act="${id}">
+        <span class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>${lab}</button>`).join("")}
+    </div>
+    <div class="toolrow" style="margin-top:10px">
+      <button class="btn danger" id="btn-crit">⚠ Error crítico (${state.criticalErrors})</button>
+      <button class="btn" id="btn-note">+ Nota</button>
+      <button class="btn" id="btn-ref">Referencias</button>
+    </div>
+    <div class="notes">${state.notes.slice(-6).reverse().map(n=>`<div class="note"><b>${fmtClock(n.t)}</b>${n.text}</div>`).join("")||'<div class="note" style="border:none;color:var(--ink-faint)">Sin notas todavía</div>'}</div>
+  </div>`;
+}
+function vc(key,lab,color,stepv){
+  const v=state.vitals[key];
+  const disp=(key==="spo2"||key==="sbp")&&!pulseNow()?"--":(v==null?"--":v);
+  return `<div class="vc" data-vc="${key}" data-step="${stepv}">
+    <div class="vhead"><span class="vlab" style="color:${color}">${lab}</span><span class="vval" style="color:${color}">${disp}</span></div>
+    <div class="vrow"><button class="step" data-d="-1">−</button>
+      <input type="range" min="${key==='spo2'?50:0}" max="${key==='hr'?300:key==='sbp'?220:key==='rr'?90:key==='etco2'?100:100}" value="${v==null?90:v}" data-range="${key}">
+      <button class="step" data-d="1">+</button></div></div>`;
+}
+function footHTML(){
+  return `
+    <button class="btn ${state.running?'pause':'start'}" id="btn-run">${state.running?'⏸ Pausar':'▶ Iniciar'}</button>
+    <button class="btn end" id="btn-end">■ Finalizar</button>`;
+}
+
+let CTRL_TARGETS=[]; // ids de contenedores de control activos
+function renderControls(){
+  const html=controlHTML();
+  CTRL_TARGETS.forEach(id=>{const el=$("#"+id);if(el)el.innerHTML=html;});
+  renderFoot();
+  // título
+  const tt=$("#ctrl-title"); if(tt)tt.textContent=`${state.program} · ${state.scenarioTitle}`;
+}
+function renderFoot(){
+  const html=footHTML();
+  ["ctrl-foot","ctrl-foot-solo"].forEach(id=>{const el=$("#"+id);if(el)el.innerHTML=html;});
+}
+
+/* ---------- delegación de eventos de control ---------- */
+document.addEventListener("click",(e)=>{
+  const t=e.target.closest("[data-open],[data-scn],[data-q],[data-rh],[data-act],[data-val],[data-d],[data-close],[data-remote]");
+  if(!t)return;
+  if(t.dataset.remote!=null){ openRemote(); return; }
+  if(t.dataset.open!=null){ go(t.dataset.open); return; }
+  if(t.dataset.close!=null){ t.closest(".modal").classList.remove("open"); return; }
+  if(t.dataset.scn){ loadScenario(t.dataset.scn); return; }
+  if(t.dataset.q){ if(t.dataset.q)quick(t.dataset.q); return; }
+  if(t.dataset.rh){ setRhythm(t.dataset.rh); return; }
+  if(t.dataset.act){ toggleAction(t.dataset.act); return; }
+  if(t.dataset.val!=null){ const seg=t.closest("[data-seg]"); handleSeg(seg.dataset.seg,t.dataset.val); return; }
+  if(t.dataset.d!=null){ const vc=t.closest("[data-vc]"); const step=+vc.dataset.step*(+t.dataset.d); setVital(vc.dataset.vc,step); return; }
+});
+document.addEventListener("input",(e)=>{
+  const r=e.target.closest("[data-range]"); if(r){ setVital(r.dataset.range,0,+r.value); }
+});
+document.addEventListener("change",(e)=>{
+  if(e.target.id==="f-instr"){state.instructor=e.target.value;if(authoritative)broadcast("state");}
+  if(e.target.id==="f-team"){state.team=e.target.value;if(authoritative)broadcast("state");}
+});
+// botones no delegados (ids dinámicos): usar delegación por id
+document.addEventListener("click",(e)=>{
+  const b=e.target.closest("button"); if(!b)return;
+  switch(b.id){
+    case "btn-run": state.running?pauseTimer():startTimer(); break;
+    case "btn-end": openDebrief(); break;
+    case "btn-crit": addCritical(); break;
+    case "btn-deter": toggleDeterioro(b); break;
+    case "btn-ref": openRef(); break;
+    case "btn-note":{ const tx=prompt("Nota del instructor:"); if(tx)addNote(tx); break; }
+    case "btn-help": $("#modal-help").classList.add("open"); break;
+    case "btn-install": doInstall(); break;
+    case "btn-remote-host":{ const c=(($("#remote-code")||{}).value||"").trim().toUpperCase(); if(!c){toast("Escribe un código");break;}
+      Remote.host(c).then(ok=>{ if(ok){toast("Sala "+c+" activa");openRemote();updateConn();} else toast("Configura Firebase primero"); }).catch(()=>toast("Error de conexión")); break; }
+    case "btn-remote-join":{ const c=(($("#remote-code")||{}).value||"").trim().toUpperCase(); if(!c){toast("Escribe el código");break;}
+      Remote.join(c).then(ok=>{ if(ok){toast("Conectado a "+c);openRemote();updateConn();} else toast("Configura Firebase primero"); }).catch(()=>toast("Error de conexión")); break; }
+    case "btn-remote-stop": Remote.stop(); $("#modal-remote").classList.remove("open"); updateConn(); toast("Fuera de la sala"); break;
+  }
+});
+function openRemote(){
+  const body=$("#remote-body");
+  if(!Remote.configured()){
+    body.innerHTML=`<p style="line-height:1.6;color:var(--ink-dim);font-size:14px">El <b style="color:var(--ink)">modo local</b> (dos ventanas del mismo equipo) ya funciona sin configurar nada.<br><br>Para controlar <b style="color:var(--ink)">entre dispositivos distintos por internet</b>, pega una vez tu configuración de Firebase en el archivo <code>index.html</code>, en la constante <code>FIREBASE_CONFIG</code>. La obtienes en <b style="color:var(--ink)">console.firebase.google.com → Configuración del proyecto → Tus apps → SDK</b> e incluye <code>databaseURL</code>.</p>
+      <p class="ref-note">Con Realtime Database en modo de prueba basta para el aula. Solo se comparten signos vitales simulados; no hay datos de pacientes.</p>`;
+    $("#modal-remote").classList.add("open"); return;
+  }
+  if(Remote.active){
+    body.innerHTML=`<h4 class="sub">Sala activa</h4>
+      <div class="num" style="font-size:34px;font-weight:800;letter-spacing:.08em;color:var(--accent)">${Remote.code}</div>
+      <p style="color:var(--ink-dim);font-size:13.5px;margin:8px 0 0;line-height:1.5">${Remote.role==="host"?"Este equipo es el <b style='color:var(--ink)'>control</b>. En el otro dispositivo abre <b style='color:var(--ink)'>Monitor → ⇄ Remoto</b> y escribe este código.":"Recibiendo la sesión desde el control remoto."}</p>
+      <button class="btn danger" id="btn-remote-stop" style="width:100%;justify-content:center;margin-top:16px">Salir de la sala</button>`;
+    $("#modal-remote").classList.add("open"); return;
+  }
+  const isHost=(VIEW==="control"||VIEW==="solo");
+  if(isHost){
+    const code="EDU-"+Math.floor(1000+Math.random()*9000);
+    body.innerHTML=`<h4 class="sub">Crear sala · este equipo = control</h4>
+      <div class="field"><label>Código de sala</label><input type="text" id="remote-code" value="${code}"></div>
+      <button class="btn primary" id="btn-remote-host" style="width:100%;justify-content:center;margin-top:12px">Iniciar sala</button>
+      <p class="ref-note">Comparte el código. En el otro dispositivo: <b>Monitor → ⇄ Remoto</b> y escríbelo para conectar.</p>`;
+  }else{
+    body.innerHTML=`<h4 class="sub">Conectar al control · este equipo = monitor</h4>
+      <div class="field"><label>Código de sala</label><input type="text" id="remote-code" placeholder="EDU-0000" autocapitalize="characters"></div>
+      <button class="btn primary" id="btn-remote-join" style="width:100%;justify-content:center;margin-top:12px">Conectar</button>
+      <p class="ref-note">Pide el código al instructor (aparece en su Control → ⇄ Remoto).</p>`;
+  }
+  $("#modal-remote").classList.add("open");
+}
+function handleSeg(name,val){
+  if(name==="program"){ state.program=val;
+    const first=SCN.find(s=>s.prog===val); if(first)loadScenario(first.id); else commit();
+  }else if(name==="difficulty"){ state.difficulty=val; commit({full:true}); }
+  else if(name==="decision"){ state.decision=val; commit(); renderDebrief(); }
+}
+
+/* ---------- navegación ---------- */
+function go(view){
+  VIEW=view; document.body.dataset.view=view;
+  authoritative=(view==="control"||view==="solo");
+  // limpiar instancias de monitor previas (detiene sus trazos y observadores)
+  monitors.forEach(m=>{try{m.destroy();}catch(e){}});
+  monitors.length=0;
+  CTRL_TARGETS=[];
+  if(view==="monitor"){
+    const m=createMonitor($("#mon-full")); monitors.push(m); m.update(state);
+    broadcast("hello");
+  }else if(view==="control"){
+    const pv=createMonitor($("#mon-preview"),{mini:true}); monitors.push(pv);
+    CTRL_TARGETS=["ctrl-body"]; renderControls(); pv.update(state);
+    broadcast("state");
+  }else if(view==="solo"){
+    const m=createMonitor($("#mon-solo")); monitors.push(m);
+    CTRL_TARGETS=["ctrl-body-solo"]; renderControls(); m.update(state);
+    broadcast("state");
+  }
+  syncTimers(); updateConn();
+  location.hash=view;
+}
+
+/* ---------- debriefing ---------- */
+function scoreNow(){
+  const keyDone=state.scenarioKey.filter(k=>state.doneActions.includes(k)).length;
+  const keyTotal=state.scenarioKey.length||1;
+  const keyPct=keyDone/keyTotal; // 0..1
+  let score=Math.round(60*keyPct + 40 - state.criticalErrors*12);
+  return clamp(score,0,100);
+}
+function openDebrief(){ renderDebrief(); $("#modal-debrief").classList.add("open"); }
+function renderDebrief(){
+  const sc=scoreNow();
+  const keyRows=state.scenarioKey.map(k=>{const lab=(ACTIONS[state.program].find(a=>a[0]===k)||[,k])[1];const ok=state.doneActions.includes(k);
+    return `<tr><td style="text-align:left">${lab}</td><td style="color:${ok?'var(--hr)':'var(--crit)'}">${ok?'✔ Realizada':'✘ Omitida'}</td></tr>`;}).join("");
+  const evRows=state.events.slice().reverse().slice(0,14).map(e=>`<tr><td class="num">${fmtClock(e.t)}</td><td style="text-align:left">${e.text}</td></tr>`).join("");
+  $("#debrief-body").innerHTML=`
+    <div class="score-ring">
+      <div class="ring" style="--p:${sc}"><div class="inner"><b>${sc}</b><small>/100</small></div></div>
+      <div>
+        <div style="font-size:15px;font-weight:800">${state.scenarioTitle}</div>
+        <div style="color:var(--ink-dim);font-size:13px">${state.program} · ${state.difficulty} · ${fmtClock(state.elapsed)}</div>
+        <div style="margin-top:6px;font-size:12.5px;color:var(--ink-faint)">${state.scenarioBrief}</div>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="mv num">${state.scenarioKey.filter(k=>state.doneActions.includes(k)).length}/${state.scenarioKey.length}</div><div class="ml">Acciones clave</div></div>
+      <div class="metric"><div class="mv num" style="color:${state.criticalErrors?'var(--crit)':'var(--hr)'}">${state.criticalErrors}</div><div class="ml">Errores críticos</div></div>
+      <div class="metric"><div class="mv num">${state.doneActions.length}</div><div class="ml">Intervenciones</div></div>
+      <div class="metric"><div class="mv num">${state.notes.length}</div><div class="ml">Notas</div></div>
+    </div>
+    <h4 class="sub">Decisión del instructor</h4>
+    <div class="decision">${segHTML("decision",["Aprueba","Remediación","No aprueba"],state.decision)}</div>
+    <div class="divider"></div>
+    <h4 class="sub">Acciones clave del escenario</h4>
+    <table class="ref-tbl"><tbody>${keyRows}</tbody></table>
+    <h4 class="sub" style="margin-top:16px">Cronología</h4>
+    <table class="ref-tbl"><tbody>${evRows||'<tr><td>Sin eventos</td></tr>'}</tbody></table>
+    <div class="toolrow" style="margin-top:16px">
+      <button class="btn" onclick="printReport()">Descargar / Imprimir PDF</button>
+      <button class="btn primary" onclick="newSession()">Nueva sesión</button>
+    </div>
+    <p class="ref-note">Puntaje orientativo con fines de debriefing; ajústalo al criterio del curso. Herramienta educativa alineada a la lógica AHA/AAP/ILCOR (PALS y NRP 9.ª ed.); no sustituye los algoritmos y protocolos vigentes.</p>`;
+}
+function newSession(){
+  $("#modal-debrief").classList.remove("open");
+  const id=state.scenarioId; const instr=state.instructor,team=state.team;
+  state=baseState(); state.instructor=instr; state.team=team;
+  clearInterval(timerInt);timerInt=null; if(deterInt){clearInterval(deterInt);deterInt=null;}
+  loadScenario(id); syncTimers(); toast("Sesión reiniciada");
+}
+
+/* ---------- reporte imprimible ---------- */
+function printReport(){
+  const sc=scoreNow();
+  const keyRows=state.scenarioKey.map(k=>{const lab=(ACTIONS[state.program].find(a=>a[0]===k)||[,k])[1];const ok=state.doneActions.includes(k);
+    return `<tr><td>${lab}</td><td>${ok?'Realizada':'Omitida'}</td></tr>`;}).join("");
+  const noteRows=state.notes.map(n=>`<tr><td>${fmtClock(n.t)}</td><td>${n.text}</td></tr>`).join("")||"<tr><td>—</td><td>Sin notas</td></tr>";
+  $("#print-report").innerHTML=`
+    <div class="pr-brand"><h1>SimCopilot EDUVESA — Reporte de sesión</h1><div>${new Date().toLocaleString("es-MX")}</div></div>
+    <div class="pr-meta">${state.program} · ${state.difficulty} · Escenario: <b>${state.scenarioTitle}</b> · Duración ${fmtClock(state.elapsed)}<br>
+      Instructor: ${state.instructor||"—"} · Equipo: ${state.team||"—"} · Paciente: ${state.patient.age}, ${state.patient.weightKg} kg</div>
+    <h3>Resultado</h3>
+    <table><tr><th>Puntaje</th><th>Acciones clave</th><th>Errores críticos</th><th>Decisión</th></tr>
+      <tr><td>${sc}/100</td><td>${state.scenarioKey.filter(k=>state.doneActions.includes(k)).length}/${state.scenarioKey.length}</td><td>${state.criticalErrors}</td><td>${state.decision||"—"}</td></tr></table>
+    <h3>Acciones clave</h3><table><tr><th>Acción</th><th>Estado</th></tr>${keyRows}</table>
+    <h3>Notas del instructor</h3><table><tr><th>Tiempo</th><th>Nota</th></tr>${noteRows}</table>
+    <p style="color:#666;font-size:11px;margin-top:18px">Herramienta educativa. No sustituye los protocolos y algoritmos vigentes AHA/AAP/ILCOR.</p>`;
+  window.print();
+}
+
+/* ---------- referencias ---------- */
+function openRef(){
+  const nrp=NRP_SPO2.map(([m,lo,hi])=>`<tr><td>${m===10?'10':m}</td><td>${lo}–${hi}%</td></tr>`).join("");
+  const bands=Object.values(AGE_BANDS).map(b=>`<tr><td>${b.label}</td><td>${b.hr[0]}–${b.hr[1]}</td><td>${b.rr[0]}–${b.rr[1]}</td><td>${b.sbp[0]}–${b.sbp[1]}</td></tr>`).join("");
+  $("#ref-body").innerHTML=`
+    <h4 class="sub">SpO₂ preductal objetivo (NRP · minuto de vida)</h4>
+    <table class="ref-tbl"><thead><tr><th>min</th><th>SpO₂</th></tr></thead><tbody>${nrp}</tbody></table>
+    <h4 class="sub" style="margin-top:16px">Signos vitales por edad (PALS · orientativo, despierto)</h4>
+    <table class="ref-tbl"><thead><tr><th>Edad</th><th>FC</th><th>FR</th><th>TA sist.</th></tr></thead><tbody>${bands}</tbody></table>
+    <p class="ref-note">Valores de referencia con fines educativos, coherentes con los rangos enseñados en PALS y con las metas de SpO₂ de NRP. Verifica siempre las tablas y algoritmos oficiales vigentes de tu edición del curso.</p>`;
+  $("#modal-ref").classList.add("open");
+}
+
+/* ---------- ayuda ---------- */
+$("#help-body").innerHTML=`
+  <ol style="line-height:1.7;padding-left:20px;font-size:14px;color:var(--ink-dim)">
+    <li><b style="color:var(--ink)">Instala</b> la app (botón “Instalar app”) en la tablet, celular o computadora.</li>
+    <li>En el equipo que verá el grupo, abre <b style="color:var(--ink)">Monitor</b> (mándalo a la TV o proyector).</li>
+    <li>En tu celular, abre <b style="color:var(--ink)">Control</b>. Al estar en el mismo equipo/navegador se conectan solos.</li>
+    <li>¿Una sola pantalla? Usa <b style="color:var(--ink)">Todo en uno</b>.</li>
+    <li><b style="color:var(--ink)">¿Dos dispositivos por internet?</b> Toca <b style="color:var(--ink)">⇄ Remoto</b>: en el control creas una sala con código y en el monitor lo escribes (requiere pegar tu Firebase una vez).</li>
+    <li>Elige programa y escenario, inicia el cronómetro y guía la simulación con los ajustes rápidos.</li>
+    <li>Al terminar, <b style="color:var(--ink)">Finalizar</b> abre el debriefing y el reporte en PDF.</li>
+  </ol>
+  <p class="ref-note">El emparejado funciona entre ventanas del mismo equipo, sin internet. El Monitor y el Control deben abrirse desde la misma dirección (mismo origen).</p>`;
+
+/* ---------- PWA ---------- */
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",(e)=>{e.preventDefault();deferredPrompt=e;const b=$("#btn-install");if(b)b.style.display="inline-flex";});
+function doInstall(){ if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;$("#btn-install").style.display="none";}
+  else toast("Usa el menú del navegador → “Agregar a pantalla de inicio”."); }
+window.addEventListener("appinstalled",()=>{const b=$("#btn-install");if(b)b.style.display="none";toast("App instalada");});
+if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+
+/* ---------- init ---------- */
+$$('[data-close]').forEach(b=>b.addEventListener("click",e=>e.target.closest(".modal").classList.remove("open")));
+$$('.modal').forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("open")}));
+window.addEventListener("hashchange",()=>{const h=location.hash.replace("#","");if(["monitor","control","solo","home"].includes(h)&&h!==VIEW)go(h);});
+loadScenario(SCN[0].id);
+const initial=location.hash.replace("#","");
+go(["monitor","control","solo"].includes(initial)?initial:"home");
+window.printReport=printReport; window.newSession=newSession;
+</script>
+</body>
+</html>
